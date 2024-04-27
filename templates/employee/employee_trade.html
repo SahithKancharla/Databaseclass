@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Navbar</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        /* Custom CSS */
+        .form-container {
+            display: none;
+            border: 1px solid #ccc; /* Grey border */
+            padding: 20px; /* Padding inside the border */
+            border-radius: 5px; /* Rounded corners */
+            margin-bottom: 20px; /* Margin at the bottom for spacing */
+        }
+
+        .form-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px; /* Added margin to separate from the form inputs */
+        }
+
+        /* Additional Styles */
+        body {
+            background-color: #f8f9fa; /* Light grey background */
+        }
+
+        .container {
+            background-color: #ffffff; /* White container background */
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Box shadow for depth */
+        }
+
+        .btn-primary {
+            margin-right: 10px; /* Added margin between buttons */
+        }
+    </style>
+</head>
+
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand">GS Commodity</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/employee">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/employee-trades">Trades <span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/employee_profile">Profile</a>
+              </li>
+            </ul>
+            <ul class="navbar-nav ml-auto">
+              <li class="nav-item">
+                  <a class="nav-link" href="/logout">Logout</a>
+              </li>
+          </ul>
+        </div>
+    </nav>
+
+    <!-- Bootstrap JS and dependencies -->
+
+    <div class="container mt-4">
+        <div id="formSelector" class="mb-4">
+            <button class="btn btn-primary mr-2" onclick="showForm('form1')">New Trade</button>
+            <button class="btn btn-primary" onclick="showForm('form2')">Close Trade</button>
+        </div>
+
+        <div id="form1" class="form-container">
+            <h2>New Trade</h2>
+            <form onsubmit="return validateForm1()">
+                <div class="form-group">
+                    <label for="entry">Entry Price:</label>
+                    <input type="number" class="form-control" id="entry" name="entry" oninput="updateRunningTotal()">
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" oninput="updateRunningTotal()">
+                </div>
+                <div class="form-group">
+                    <select id="contract" name="contract_selected" required>
+                        <option value="" disabled selected>Select contract</option>
+                        {% for contract in contracts %}
+                            <option value="{{contract['CONTRACTID'] }}">
+                                {{contract['CONTRACTNAME']}} {{ contract['TICKER'] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-flex">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <div>
+                        <p>Total Available Cash:  $<span id="totalCashDisplay">{{ total_cash }}</span></p>
+                        <p>Total Cost:             $<span id="runningTotalDisplay">0</span></p>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="form2" class="form-container">
+            <h2>Close Trade</h2>
+            <form method="POST" action="/employee_close_trade">
+                <label for="closeTrade">Select a Tread:</label>
+                <select id="closeTrade" name="closed_trade" required onchange="updateEstimates()">
+                    <option value="" disabled selected>Select Trade</option>
+                    {% for trade in open_trade %}
+                        <option value="{{trade}}">
+                        {{contracts[trade['CONTRACTID']]['TICKER']}} {{ contracts[trade['CONTRACTID']]['CONTRACTNAME'] }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="form-group">
+                    <label for="exit">Exit Price:</label>
+                    <input type="number" class="form-control" id="exit" name="exit">
+                </div>
+
+                <div class="form-flex">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <div>
+                        <p>Break even return: $<span id="breakeven"></span></p>
+                        <p>Break even price: $<span id="breakevenPrice">0</span></p>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        function showForm(formId) {
+            var forms = document.getElementsByClassName("form-container");
+            for (var i = 0; i < forms.length; i++) {
+                forms[i].style.display = "none";
+            }
+            document.getElementById(formId).style.display = "block";
+        }
+
+        var total_cash = JSON.parse("{{total_assets['TOTALCASH'] }}")
+        document.getElementById("totalCashDisplay").innerText = total_cash;
+        function validateForm1() {
+            var entry = document.getElementById("entry").value;
+            var quantity = document.getElementById("quantity").value;
+            var totalPrice = entry * quantity;
+            if (totalPrice > total_cash) {
+                alert("Insufficient cash to make this trade.");
+                return false;
+            }
+            var formData = {
+                entry: entry,
+                quantity: quantity,
+                contract_selected: document.getElementById("contract").value
+            };
+
+            // Send JSON data to backend using fetch
+            fetch('/employee_submit_trade', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            }).then(response => {
+                if (response.ok) {
+                    // Handle success
+                    console.log('Form data sent successfully.');
+                } else {
+                    // Handle error
+                    console.error('Error sending form data.');
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+            return true;
+        }
+        function updateRunningTotal() {
+            var entry = document.getElementById("entry").value;
+            var quantity = document.getElementById("quantity").value;
+            var totalPrice = entry * quantity;
+            document.getElementById("runningTotalDisplay").innerText = totalPrice.toFixed(2);
+        }
+
+        function updateEstimates() {
+            var selectedTradeStr = document.getElementById("closeTrade").value;
+            selectedTradeStr = selectedTradeStr.replace(/'/g, '"');
+            var selectedTrade = JSON.parse(selectedTradeStr);
+            console.log(selectedTrade, entryprice, quantityvalue)
+            var id = selectedTrade['TRADEID'];
+            var entryprice = selectedTrade['ENTRYPRICE'];
+            var quantityvalue = selectedTrade['QUANTITY'];
+            console.log(selectedTrade, entryprice, quantityvalue)
+
+            document.getElementById("breakeven").innerText = entryprice * quantityvalue;
+            document.getElementById("breakevenPrice").innerText = entryprice;
+        }
+
+
+    </script>
+
+</body>
+</html>

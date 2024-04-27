@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Navbar</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+
+        #container {
+            display: flex;
+            background-color: #e9ecef; /* Light gray background for the container */
+            padding: 10px;
+            height: 550px; /* Make the container full height of the viewport */
+        }
+        #opencontainer{
+            display: flex;
+            background-color: #e9ecef; /* Light gray background for the container */
+            padding: 10px;
+            height: 550px; /* Make the container full height of the viewport */
+            width: 100vw;
+        }
+
+        #center{
+            left: 200px;
+        }
+
+        #progress-container {
+            margin-left: 100px;
+            position: flex;
+            left: 0;
+            padding: 10px;
+            background-color: #f8f9fa; /* Light gray background */
+            border-right: 1px solid #dee2e6; /* Border on the right side */
+        }
+
+        #progress-bar {
+            width: 500px; /* Adjust width as needed */
+        }
+
+        #total_returns {
+            font-size: 24px;
+            color: #28a745; /* Green color for positive returns */
+        }
+
+        #open-trades-container {
+            margin-left: 50px;
+            width: 800px;
+            overflow-y: 500px; /* Add scroll bar when content overflows */
+            max-height: 500px; /* Limit the height of the container */
+        }
+        .trade-item {
+            border: 1px solid #ccc; /* Add border to trade-item */
+            padding: 5px;
+            transition: all 0.3s ease; /* Add transition for smooth effect */
+        }
+
+        .trade-item-trial{
+            border: 1px solid #ccc; /* Add border to trade-item */
+            padding: 5px;
+            transition: all 0.3s ease; /* Add transition for smooth effect */
+            width: 70vw;
+        }
+
+        .trade-item-trial:hover{
+            transform: scale(1.05); /* Scale up on hover */
+            border-color: #007bff; /* Change border color on hover */
+        }
+
+        .trade-item:hover {
+            transform: scale(1.05); /* Scale up on hover */
+            border-color: #007bff; /* Change border color on hover */
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand">GS Commodity</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="/employee">Home <span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/employee-trades">Trades</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/employee_profile">Profile</a>
+              </li>
+            </ul>
+            <ul class="navbar-nav ml-auto">
+              <li class="nav-item">
+                  <a class="nav-link" href="/logout">Logout</a>
+              </li>
+          </ul>
+        </div>
+    </nav>
+
+    <div id="container">
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+            <p><b>Percentage return: <span id="total_returns"></span>%</b></p>
+        </div>
+        <div>
+            <div id="open-trades-container">
+                <h3>All Open Trades:</h3>
+            </div>
+        </div>
+    </div>
+
+    <div id="opencontainer">
+        <div id ="center">
+            <div id="past-trades-container">
+                <h3>All Past Trades:</h3>
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        fetch('/generate_progress_bar_employee')
+            .then(response => response.json())
+            .then(data => {
+                // Parse the JSON data
+                const fig = data.fig;
+                const total_returns = data.total_returns;
+                const return_ratio = data.return_ratio;
+                const open_trade = data.open_trades;
+                const close_trade = data.close_trades;
+                const percentage_return = (1 - return_ratio) * 100
+                const contracts = data.contracts
+                document.getElementById("total_returns").innerText = percentage_return;
+                console.log(total_returns, return_ratio, open_trade)
+                
+                // Render the Plotly figure in the 'progress-bar' div
+                Plotly.newPlot('progress-bar', fig.data, fig.layout);
+                const openTradesContainer = document.getElementById('open-trades-container');
+                open_trade.forEach(trade => {
+                    const tradeItem = document.createElement('div');
+                    tradeItem.classList.add('trade-item');
+                    tradeItem.innerText = `Ticker: ${contracts[trade.CONTRACTID].TICKER}, Entry Price: ${trade.ENTRYPRICE}, Quantity: ${trade.QUANTITY}`;
+                    openTradesContainer.appendChild(tradeItem);
+                });
+
+                const closeTradeContainer = document.getElementById('past-trades-container');
+                close_trade.forEach(trade => {
+                    const tradeItem = document.createElement('div');
+                    tradeItem.classList.add('trade-item-trial');
+                    tradeItem.innerText = `Ticker: ${contracts[trade.CONTRACTID].TICKER}, Entry Price: ${trade.ENTRYPRICE}, Quantity: ${trade.QUANTITY}`;
+                    closeTradeContainer.appendChild(tradeItem);
+                });
+            });
+    </script>
+
+
+
+
+</body>
+</html>

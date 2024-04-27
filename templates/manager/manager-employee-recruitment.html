@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Demand Visualization</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .employee-form {
+            border: 1px solid #ccc; /* Add border to employee-item */
+            padding: 5px;
+            transition: all 0.3s ease; /* Add transition for smooth effect */
+        }
+
+        .employee-form:hover {
+            transform: scale(1.05); /* Scale up on hover */
+            border-color: #007bff; /* Change border color on hover */
+        }
+
+        .submit-button {
+            display: none; /* Initially hide the submit button */
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">GS Commodity</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/manager">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/manage-employee-recruitment">Team <span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/manager_profile">Profile</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+
+    <div class="container">
+    </br>
+    </br>
+    </br>
+
+        <h1>Team Management</h1>
+        <div id="team-list" class="mb-4">
+            {% for employee in team %}
+                <form method="POST" action="/manager-remove-team-member" class="employee-form">
+                    <input type="hidden" name="employee_id" value="{{ employee['EMPLOYEEID'] }}">
+                    <input type="hidden" name="employee_name" value="{{ employee['FIRSTNAME'] }}">
+                    <div class="employee-item">{{ employee['FIRSTNAME']}}</div>
+                    <button class="submit-button" type="submit">remove</button>
+                </form>
+            {% endfor %}
+        </div>
+    </br>
+        <form method="POST" action="/manager-add-team-member" id="free-list" style="display: none;">
+            <h3>Free Employees</h3>
+            {% if free %}
+            <select id="managerOption" name="selected_employee">
+                {% for employee in free %}
+                    <option value="{{ employee['EMPLOYEEID']}}">
+                        {{ employee['FIRSTNAME'] }} {{ employee['LASTNAME'] }}
+                    </option>
+                {% endfor %}
+                {% else %}
+                    <p>No free person available.</p>
+                {% endif %}
+            </select>
+            <button id="add-person-form-btn" class="btn btn-primary mt-2" style="display: none;" type="button">Cancel</button>
+            <button type ="submit" id="add-person-form-finish-btn" class="btn btn-primary mt-2" style="display: none;">Add Person</button>
+        </form>
+        <button id="add-person-btn" class="btn btn-primary mt-2">Add Person</button>
+    </div>
+
+    <!-- JavaScript to handle adding a new person from the free list -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const addPersonBtn = document.getElementById('add-person-btn');
+            const addPersonFormFinishBtn = document.getElementById('add-person-form-finish-btn');
+            const addPersonFormBtn = document.getElementById('add-person-form-btn');
+            const freeList = document.getElementById('free-list');
+
+            addPersonBtn.addEventListener('click', function () {
+                freeList.style.display = 'block';
+                addPersonFormBtn.style.display = 'block';
+                addPersonFormFinishBtn.style.display = 'block';
+                addPersonBtn.style.display = 'none';
+            });
+
+            addPersonFormBtn.addEventListener('click', function () {
+                freeList.style.display = 'none';
+                addPersonFormBtn.style.display = 'none';
+                addPersonFormFinishBtn.style.display = 'none';
+                addPersonBtn.style.display = 'block';
+            });
+
+            const employeeItems = document.querySelectorAll('.employee-item');
+            employeeItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    const form = item.parentElement;
+                    const submitBtn = form.querySelector('.submit-button');
+                    submitBtn.style.display = submitBtn.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
